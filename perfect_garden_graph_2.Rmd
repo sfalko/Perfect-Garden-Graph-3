@@ -1,0 +1,132 @@
+---
+title: "Perfect Garden Graph Part 3"
+author: "Sarah Falkovic"
+output: 
+  html_document:
+    df_print: paged
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+```{r libraries}
+library(tidyverse)         # for graphing and data cleaning
+library(googlesheets4)     # for reading in data from google sheets
+library(lubridate)         # for working with dates
+theme_set(theme_minimal()) # you could choose a theme here
+gs4_deauth()               #To not have to authorize each time
+local({r <- getOption("repos")
+       r["CRAN"] <- "http://cran.r-project.org" 
+       options(repos=r)
+})
+library(ggtext)
+```
+
+```{r}
+library(wesanderson)
+```
+
+```{r data}
+# read in the garden data from Google Sheet
+garden_harvest <- read_sheet("https://docs.google.com/spreadsheets/d/1DekSazCzKqPS2jnGhKue7tLxRU3GVL1oxi-4bEM5IWw/edit?usp=sharing") %>% 
+  mutate(date = ymd(date))
+```
+
+
+Explain the question you hope to answer and create the graph below. You can summarize the data in any way you'd like. Add R code chunks and comment code as needed. As the weeks go by, rather than deleting your old graph, add new R code chunk(s) and build on what you had before so you (and I) can see the progress throughout the course.
+
+
+  My question is "how does yield of each plant change over time?" I'll admit that this graph is really busy, and I hope to make it less busy and more informative over time. In future weeks, I plan to isolate some of these groups by type (berry, cruciferous vegetables, herbs, etc.) and see if there are any distinct patterns in yield.
+
+```{r}
+ggplot(garden_harvest, aes(x = date, y = weight, color = vegetable)) + 
+  geom_point() + ggtitle("My Perfect Garden Graph 10/31") + guides(colour=guide_legend(ncol = 4)) + ggthemes::theme_economist_white()
+```
+
+      Comments: Good start. Make sure to adhere to the tidyverse code guidelines - the biggest one is pushing enter/return after each plus sign. This makes the code easier to read. I like your idea of isolating by type. You could create the categories in many different ways. I would recommmend case_when() inside a mutate(), and I can help you get started. Add an informative title so that you don't need an x and y axis label. Once you create the types, you might use colors that correspond to the type of vegetable.
+
+  For my next graph, I decided to use the "case_when" function to form more interesting categories and compare their yield. My question today was "how do cruciferous and non-cruciferous vegetables compare in yield over time?" For this, I created separate categories of vegetables, fruits, legumes, and herbs. I left the non-vegetable categories because they will be useful for exploration in the future. From there, I altered my scatterplot to specifically only look at data from vegetables. I found some great Wed-Anderson inspired pallettes, and decided to use them here. As you can see, the highest yield vegetables were harvested during september and october, with many of the hefty vegetables likely being pumpkins. Comparative;y, cruciferous vegetables were harvested similarly often but rarely in large quantities comparable to the non-cruciferous vegetables.
+
+```{r}
+garden_harvest %>% 
+  mutate( category =
+    case_when(
+      vegetable %in% 
+        c("radish", "spinach", "kohlrabi", "broccoli", "kale", "rutabaga", "Swiss chard")       ~ "cruciferous vegetables",
+      vegetable %in% 
+        c("apple", "corn", "cucumbers", "hot peppers", "jalapeño",  "raspberries",    "strawberries", "tomatoes") 
+      ~ "fruit",
+      vegetable %in% 
+        c("asparagus", "beets", "carrots", "chives" , "lettuce", "onion", "peppers", "potatoes", "pumpkins", "squash", "zucchini") 
+      ~ "non-cruciferous vegetables",
+      vegetable %in% c("basil", "cilantro" ) 
+      ~ "herbs",
+      vegetable %in% c("beans", "edamame", "peas") 
+      ~ "legumes",
+      TRUE                      ~ "other"
+    )) %>%
+  filter(category == "cruciferous vegetables" | category == "non-cruciferous vegetables") %>%
+  ggplot() +
+  theme(legend.position="none") +
+  scale_color_manual(values = wes_palette("Chevalier1")) +
+  aes(x = date, y = weight, color = category) + 
+  geom_point() + 
+  theme(
+    plot.title = element_text(hjust = 0.5)
+        ) +
+  ggtitle("Cruciferous & Non-Cruciferous Vegetable 
+               Yields (g) over Time") +
+  guides(colour=guide_legend(ncol = 2)) + 
+  labs(x = " ", 
+       y = " ", 
+       fill = "vegetable") +
+  ggthemes::theme_economist_white()
+```
+
+
+    Comments: I had to look up what that word meant - now I know something new! I like the changes you made. Add your theme() function to the end of the code. Leave the title to the left rather than centered. Make the points smaller and a little transparent so we can see when they overlap. It also might help to add a geom_smooth() to better show the pattern. Rather than using a legend, color the two classes in the title using ggtext(). See this and I can help: https://rfortherestofus.com/2020/05/color-titles-ggtext/#:~:text=Adding%20color%20to%20titles%20using,HTML%2C%20not%20as%20raw%20text.
+
+
+* For this graph, I mainly followed the comments given in order to sharpen the data I have chosen to tell a 'story' about. My biggest struggle was
+
+
+```{r}
+garden_harvest %>% 
+  mutate( category =
+    case_when(
+      vegetable %in% 
+        c("radish", "spinach", "kohlrabi", "broccoli", "kale", "rutabaga", "Swiss chard")       ~ "cruciferous vegetables",
+      vegetable %in% 
+        c("apple", "corn", "cucumbers", "hot peppers", "jalapeño",  "raspberries",    "strawberries", "tomatoes") 
+      ~ "fruit",
+      vegetable %in% 
+        c("asparagus", "beets", "carrots", "chives" , "lettuce", "onion", "peppers", "potatoes", "pumpkins", "squash", "zucchini") 
+      ~ "non-cruciferous vegetables",
+      vegetable %in% c("basil", "cilantro" ) 
+      ~ "herbs",
+      vegetable %in% c("beans", "edamame", "peas") 
+      ~ "legumes",
+      TRUE                      ~ "other"
+    )) %>%
+  filter(category == "cruciferous vegetables" | category == "non-cruciferous vegetables") %>%
+  ggplot() +
+  aes(x = date, y = weight, color = category, show.legend = FALSE) + 
+  geom_point(size = .6, alpha = 30/40) +
+  geom_smooth(alpha = 0.3) +
+  scale_color_manual(values = wes_palette("Chevalier1")) +
+  guides(colour=guide_legend(ncol = 2)) + 
+  labs(x = " ", 
+       y = " ", 
+       fill = "vegetable",
+       title = HTML("<span style='color:#003300;'>Cruciferous</span>, 
+    <span style='color:#000000;'>and</span>, and
+    <span style='color: #ffd11a;'>Non-Cruciferous</span>, 
+      <span style='color:#000000;'>Vegetable Yields</span>")) +
+  theme(plot.title = element_text(hjust = 0)) +
+  ggthemes::theme_economist_white()
+```
+
+
+
